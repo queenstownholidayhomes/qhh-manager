@@ -165,6 +165,11 @@ button{cursor:pointer;border:none;background:none;color:inherit}
 .modal-body{font-size:13px;color:#666;margin-bottom:18px;line-height:1.6}
 .btn-modal-ok{width:100%;background:#4ade8018;border:1px solid #4ade8040;border-radius:10px;padding:13px;color:#4ade80;font-size:15px;font-weight:600;margin-top:4px}
 .btn-modal-cancel{width:100%;background:none;border:none;color:#555;font-size:14px;padding:12px;margin-top:4px}
+.cl-item-qty{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #111318}
+.cl-qty-inp{width:56px;background:#0d0f14;border:1px solid #1e2230;border-radius:6px;padding:6px 8px;color:#4ade80;font-size:16px;font-family:'DM Mono',monospace;font-weight:600;text-align:center;outline:none}
+.cl-qty-inp:focus{border-color:#4ade8060}
+.cl-qty-label{flex:1;font-size:13px;color:#c9d1e0;line-height:1.5}
+.cl-qty-label.done{color:#333;text-decoration:line-through}
 .empty-msg{text-align:center;padding:40px;color:#333;font-size:13px;font-family:'DM Mono',monospace}
 </style>
 </head>
@@ -306,11 +311,12 @@ const TEMPLATES = [
   },
   {
     id:"linen", name:"Linen Planning", icon:"🛏️",
+    type:"qty",
     meta:[{id:"next_booking",label:"Next booking",type:"date"},{id:"guest_count",label:"Guest count",type:"text"}],
     sections:[
-      {title:"LINEN COUNT",items:["Single beds counted","Pillowcases counted","King beds counted"]},
-      {title:"TOWELS",items:["Bath towels counted","Hand towels counted","Bath mats counted","Tea towels counted","Face cloths counted"]},
-      {title:"TOILETRIES",items:["Soap stocked","Toilet paper stocked","Dish cloths stocked"]},
+      {title:"LINEN",items:["King bed sets","Single bed sets","Pillowcases","Duvet covers"]},
+      {title:"TOWELS",items:["Bath towels","Hand towels","Bath mats","Tea towels","Face cloths"]},
+      {title:"TOILETRIES",items:["Soap","Toilet paper rolls","Dish cloths"]},
     ],
   },
   {
@@ -330,7 +336,8 @@ function makeStates(propId){
   return TEMPLATES.map(tpl=>({
     tplId:tpl.id, propId, meta:{}, notes:"", expanded:false,
     items:tpl.sections.flatMap(s=>s.items.map((text,i)=>({
-      id:tpl.id+"_"+s.title.replace(/\W/g,"")+"_"+i, section:s.title, text, done:false
+      id:tpl.id+"_"+s.title.replace(/\W/g,"")+"_"+i, section:s.title, text, done:false,
+      qty: tpl.type==="qty" ? "" : undefined
     })))
   }));
 }
@@ -463,11 +470,21 @@ function renderCls(){
       const metaHtml=tpl.meta.map(f=>`<input class="cl-meta-inp" type="${f.type}" placeholder="${f.label}" value="${st.meta[f.id]||''}" onchange="setMeta(${si},'${f.id}',this.value)">`).join("");
       const secs=tpl.sections.map(s=>{
         const items=st.items.filter(i=>i.section===s.title);
+        const isQty = tpl.type==="qty";
         return `<div class="cl-sec-hd">${s.title}</div>`+
-          items.map(item=>`<div class="cl-item">
-            <div class="cl-chk ${item.done?'on':''}" onclick="tickItem(${si},'${item.id}')"></div>
-            <div class="cl-item-txt ${item.done?'done':''}">${item.text}</div>
-          </div>`).join("");
+          items.map(item=> isQty
+            ? `<div class="cl-item-qty">
+                <input class="cl-qty-inp" type="number" inputmode="numeric" min="0" max="99"
+                  placeholder="0" value="${item.qty||''}"
+                  onchange="setQty(${si},'${item.id}',this.value)">
+                <div class="cl-qty-label ${item.done?'done':''}">${item.text}</div>
+                <div class="cl-chk ${item.done?'on':''}" onclick="tickItem(${si},'${item.id}')"></div>
+              </div>`
+            : `<div class="cl-item">
+                <div class="cl-chk ${item.done?'on':''}" onclick="tickItem(${si},'${item.id}')"></div>
+                <div class="cl-item-txt ${item.done?'done':''}">${item.text}</div>
+              </div>`
+          ).join("");
       }).join("");
       body=`<div class="cl-body">
         <div class="cl-meta-row">${metaHtml}</div>
@@ -500,6 +517,11 @@ function tickItem(si,itemId){
   if(item) item.done=!item.done;
   sv("qhh_st",states); renderCls();
 }
+function setQty(si,itemId,val){
+  const item=states[curProp][si].items.find(i=>i.id===itemId);
+  if(item) item.qty=val;
+  sv("qhh_st",states);
+}
 function setMeta(si,f,v){states[curProp][si].meta[f]=v;sv("qhh_st",states);}
 function setNotes(si,v){states[curProp][si].notes=v;sv("qhh_st",states);}
 function resetCl(si){
@@ -523,7 +545,7 @@ function confirmSave(){
     tplId:tpl.id, tplName:tpl.name, tplIcon:tpl.icon,
     savedAt:new Date().toISOString(),
     meta:{...st.meta},
-    items:st.items.map(i=>({text:i.text,done:i.done,section:i.section})),
+    items:st.items.map(i=>({text:i.text,done:i.done,section:i.section,qty:i.qty})),
     notes:st.notes
   });
   sv("qhh_hi",history);
@@ -559,7 +581,7 @@ function renderHistory(){
     const itemsHtml=secs.map(s=>{
       const its=h.items.filter(i=>i.section===s);
       return `<div class="hist-sec-hd">${s}</div>`+
-        its.map(i=>`<div class="hist-item-row ${i.done?'hist-ok':'hist-miss'}">${i.done?'✓':'✗'} ${i.text}</div>`).join("");
+        its.map(i=>`<div class="hist-item-row ${i.done?'hist-ok':'hist-miss'}">${i.done?'✓':'✗'} ${i.qty!==undefined&&i.qty!==''?'['+i.qty+'] ':''} ${i.text}</div>`).join("");
     }).join("");
     return `<div class="hist-card">
       <div class="hist-top">
