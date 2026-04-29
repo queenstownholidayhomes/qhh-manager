@@ -220,6 +220,14 @@ button{cursor:pointer;border:none;background:none;color:inherit}
           <button class="lockbox-edit-btn" id="lbx-btn" onclick="toggleLockbox()">Edit</button>
         </div>
       </div>
+      <div class="lockbox-card" style="margin-top:10px;border-color:#818cf830">
+        <div class="lockbox-label" style="color:#818cf8">📍 ADDRESS / LABEL</div>
+        <div class="lockbox-display" id="addr-display" style="color:#818cf8;font-size:18px;letter-spacing:1px;line-height:1.4;word-break:break-word"></div>
+        <div class="lockbox-row">
+          <input class="lockbox-inp" id="addr-inp" type="text" placeholder="Enter address" maxlength="80" style="letter-spacing:0;font-size:14px">
+          <button class="lockbox-edit-btn" id="addr-btn" onclick="toggleAddr()" style="color:#818cf8">Edit</button>
+        </div>
+      </div>
       <div class="sec-label">CHECKLISTS</div>
       <div class="cl-cards" id="detail-cls"></div>
       <div style="height:30px"></div>
@@ -346,6 +354,7 @@ function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch{return 
 function sv(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
 let lockbox = ld("qhh_lb",{});
+let addresses = ld("qhh_addr",{});
 let states  = ld("qhh_st",{});
 let history = ld("qhh_hi",[]);
 let todos   = ld("qhh_td",[]);
@@ -379,7 +388,7 @@ function checkPin(){
 }
 
 // INIT
-let curProp=null, lbxEditing=false, pendingTpl=null, todoPri="med";
+let curProp=null, lbxEditing=false, addrEditing=false, pendingTpl=null, todoPri="med";
 
 function init(){
   renderProps();
@@ -403,12 +412,13 @@ function renderProps(){
   wrap.innerHTML=PROPS.map(p=>{
     const init=p.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
     const code=lockbox[p.id];
+    const addr=addresses[p.id];
     const hcount=history.filter(h=>h.propId===p.id).length;
     return `<div class="prop-card" onclick="openProp('${p.id}')">
       <div class="prop-initial" style="color:${p.color};background:${p.color}20">${init}</div>
       <div class="prop-info">
         <div class="prop-name">${p.name}</div>
-        <div class="prop-type">${p.type}</div>
+        <div class="prop-type">${addr?addr:p.type}</div>
         <div class="prop-meta">
           ${code?`<span class="prop-badge" style="color:#4ade80;background:#4ade8018">🔐 ${code}</span>`:""}
           ${hcount>0?`<span class="prop-badge" style="color:#818cf8;background:#818cf818">${hcount} records</span>`:""}
@@ -426,7 +436,7 @@ function openProp(id){
   document.getElementById("detail-title").textContent=p.name;
   document.getElementById("tab-props").classList.remove("active");
   document.getElementById("tab-detail").classList.add("active");
-  renderLockbox(); renderCls();
+  renderLockbox(); renderAddr(); renderCls();
   document.getElementById("detail-scroll").scrollTop=0;
 }
 function goBack(){
@@ -454,6 +464,27 @@ function toggleLockbox(){
   } else {
     lockbox[curProp]=document.getElementById("lbx-inp").value.trim();
     sv("qhh_lb",lockbox); renderLockbox();
+  }
+}
+
+function renderAddr(){
+  const addr=addresses[curProp]||"";
+  const disp=document.getElementById("addr-display");
+  disp.innerHTML=addr||`<span style="color:#2a2d3a;font-size:14px">No address set</span>`;
+  document.getElementById("addr-inp").value=addr;
+  document.getElementById("addr-inp").style.display="none";
+  document.getElementById("addr-btn").textContent="Edit";
+  addrEditing=false;
+}
+function toggleAddr(){
+  if(!addrEditing){
+    document.getElementById("addr-inp").style.display="block";
+    document.getElementById("addr-inp").focus();
+    document.getElementById("addr-btn").textContent="Save";
+    addrEditing=true;
+  } else {
+    addresses[curProp]=document.getElementById("addr-inp").value.trim();
+    sv("qhh_addr",addresses); renderAddr();
   }
 }
 
