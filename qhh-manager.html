@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="QHH Manager">
+<title>QHH Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:#0d0f14;color:#e8eaf0;position:fixed;inset:0}
+input,textarea,select,button{font-family:'Outfit',sans-serif}
+button{cursor:pointer;border:none;background:none;color:inherit}
+::-webkit-scrollbar{display:none}
+.screen{display:none;position:fixed;inset:0;flex-direction:column;background:#0d0f14;overflow:hidden}
+.screen.active{display:flex}
+.scrollable{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+
+/* PIN */
+#s-pin{align-items:center;justify-content:center}
+.pin-wrap{display:flex;flex-direction:column;align-items:center}
+.pin-eyebrow{font-size:10px;letter-spacing:5px;color:#4ade80;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:12px}
+.pin-title{font-size:32px;font-weight:700;color:#fff;margin-bottom:4px}
+.pin-sub{font-size:13px;color:#555;margin-bottom:40px}
+.pin-dots{display:flex;gap:14px;margin-bottom:32px}
+.pin-dot{width:13px;height:13px;border-radius:50%;background:transparent;border:1.5px solid #333;transition:all .15s}
+.pin-dot.on{background:#4ade80;border-color:#4ade80}
+.pin-dot.err{border-color:#f87171}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+.pin-key{width:72px;height:56px;border-radius:10px;border:1px solid #222;background:#131620;color:#fff;font-size:20px;font-weight:500;transition:all .1s}
+.pin-key:active{transform:scale(0.94);background:#1e2230}
+.pin-key.del{font-size:15px;color:#888;font-family:'DM Mono',monospace}
+.pin-key.empty{background:transparent;border-color:transparent;pointer-events:none}
+.pin-err{color:#f87171;font-size:12px;font-family:'DM Mono',monospace;margin-top:18px;min-height:18px;text-align:center}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fadein{animation:fadeUp .5s ease forwards}
+.shaking{animation:shake .4s ease}
+
+/* NAVBAR */
+.navbar{display:flex;background:#111318;border-top:1px solid #1a1d26;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 12px;gap:4px;color:#555;font-size:10px;font-weight:500;transition:color .15s}
+.nav-btn.active{color:#4ade80}
+.nav-icon{font-size:20px;line-height:1}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:16px 18px 14px;flex-shrink:0;border-bottom:1px solid #1a1d26}
+.back-btn{font-size:24px;color:#4ade80;line-height:1;padding-right:4px}
+.topbar-title{font-size:18px;font-weight:700;color:#fff;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-action{font-size:13px;color:#4ade80;font-weight:600;padding:8px 0 8px 12px;flex-shrink:0}
+
+/* PROPERTY LIST */
+.prop-list{padding:16px 18px 110px}
+.prop-card{background:#111318;border:1px solid #1e2230;border-radius:14px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.prop-card:active{border-color:#4ade8050;background:#131620}
+.prop-initial{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;font-family:'DM Mono',monospace}
+.prop-info{flex:1;min-width:0}
+.prop-name{font-size:15px;font-weight:600;color:#e8eaf0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-type{font-size:11px;color:#555;margin-top:2px}
+.prop-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.prop-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace}
+.prop-arrow{font-size:18px;color:#333;flex-shrink:0}
+
+/* LOCKBOX */
+.lockbox-card{margin:16px 18px 0;background:#111318;border:1px solid #4ade8030;border-radius:14px;padding:18px}
+.lockbox-label{font-size:10px;color:#4ade80;font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:8px}
+.lockbox-display{font-size:40px;font-weight:700;color:#4ade80;font-family:'DM Mono',monospace;letter-spacing:8px;margin-bottom:14px;min-height:48px}
+.lockbox-empty{font-size:20px;color:#2a2d3a;font-family:'DM Mono',monospace;letter-spacing:4px}
+.lockbox-row{display:flex;gap:10px;align-items:center}
+.lockbox-inp{flex:1;background:#0d0f14;border:1px solid #1e2230;border-radius:8px;padding:10px 14px;color:#e8eaf0;font-size:20px;font-family:'DM Mono',monospace;letter-spacing:4px;outline:none;display:none}
+.lockbox-inp:focus{border-color:#4ade8060}
+.lockbox-edit-btn{font-size:13px;color:#4ade80;font-weight:600;padding:8px 0}
+
+/* SECTION LABEL */
+.sec-label{font-size:10px;color:#555;font-family:'DM Mono',monospace;letter-spacing:1px;padding:20px 18px 10px;flex-shrink:0}
+
+/* CHECKLISTS */
+.cl-cards{padding:0 18px}
+.cl-card{background:#111318;border:1px solid #1e2230;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.cl-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.cl-icon{font-size:22px;flex-shrink:0}
+.cl-head-info{flex:1;min-width:0}
+.cl-name{font-size:14px;font-weight:600;color:#e8eaf0}
+.cl-prog-text{font-size:11px;color:#555;margin-top:2px}
+.cl-prog-bar{height:3px;background:#1e2230;border-radius:2px;margin-top:7px}
+.cl-prog-fill{height:3px;background:#4ade80;border-radius:2px;transition:width .3s}
+.cl-arrow{font-size:16px;color:#333;transition:transform .2s;flex-shrink:0}
+.cl-arrow.open{transform:rotate(90deg)}
+.cl-body{border-top:1px solid #1a1d26;padding:0 16px 16px}
+.cl-meta-row{display:flex;gap:8px;padding:12px 0;flex-wrap:wrap}
+.cl-meta-inp{flex:1;min-width:120px;background:#0d0f14;border:1px solid #1e2230;border-radius:8px;padding:9px 12px;color:#e8eaf0;font-size:13px;outline:none;-webkit-appearance:none}
+.cl-meta-inp:focus{border-color:#4ade8060}
+.cl-meta-inp::placeholder{color:#333}
+.cl-sec-hd{font-size:10px;color:#4ade80;font-family:'DM Mono',monospace;letter-spacing:1px;padding:12px 0 6px}
+.cl-item{display:flex;align-items:flex-start;gap:12px;padding:9px 0;border-bottom:1px solid #111318}
+.cl-chk{width:22px;height:22px;border-radius:6px;border:1.5px solid #2a2d3a;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;cursor:pointer;transition:all .15s}
+.cl-chk.on{background:#4ade80;border-color:#4ade80}
+.cl-chk.on::after{content:'✓';font-size:13px;color:#0d0f14;font-weight:700}
+.cl-item-txt{flex:1;font-size:13px;color:#c9d1e0;line-height:1.5}
+.cl-item-txt.done{color:#333;text-decoration:line-through}
+.cl-notes-lbl{font-size:10px;color:#555;font-family:'DM Mono',monospace;letter-spacing:1px;margin:12px 0 6px}
+.cl-notes-inp{width:100%;background:#0d0f14;border:1px solid #1e2230;border-radius:8px;padding:10px 12px;color:#e8eaf0;font-size:13px;outline:none;resize:none;min-height:70px;line-height:1.5}
+.cl-notes-inp:focus{border-color:#4ade8060}
+.cl-notes-inp::placeholder{color:#333}
+.cl-actions{display:flex;gap:8px;margin-top:14px}
+.btn-save{flex:1;background:#4ade8018;border:1px solid #4ade8040;border-radius:10px;padding:12px;color:#4ade80;font-size:14px;font-weight:600}
+.btn-save:active{background:#4ade8030}
+.btn-reset{background:#1a1d26;border:1px solid #1e2230;border-radius:10px;padding:12px 14px;color:#555;font-size:13px}
+.btn-reset:active{color:#888}
+
+/* HISTORY */
+.hist-list{padding:16px 18px 110px}
+.hist-empty{text-align:center;padding:60px 20px;color:#333;font-size:13px;font-family:'DM Mono',monospace;line-height:2}
+.hist-card{background:#111318;border:1px solid #1e2230;border-radius:12px;padding:16px;margin-bottom:10px}
+.hist-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.hist-name{font-size:14px;font-weight:600;color:#e8eaf0}
+.hist-del{color:#2a2d3a;font-size:20px;padding:0 0 0 8px}
+.hist-del:active{color:#f87171}
+.hist-datetime{font-size:11px;color:#555;font-family:'DM Mono',monospace;margin-bottom:6px}
+.hist-score{font-size:12px;color:#4ade80;margin-bottom:10px}
+.hist-meta-val{font-size:11px;color:#666;margin-bottom:8px}
+.hist-sec-hd{font-size:10px;color:#4ade80;font-family:'DM Mono',monospace;margin:8px 0 4px}
+.hist-item-row{font-size:11px;line-height:1.9}
+.hist-ok{color:#4ade80}
+.hist-miss{color:#f87171}
+.hist-notes-box{font-size:11px;color:#555;font-style:italic;margin-top:10px;border-top:1px solid #1a1d26;padding-top:10px}
+
+/* TODO */
+.todo-wrap{padding:16px 18px 110px}
+.todo-add{background:#111318;border:1px solid #1e2230;border-radius:14px;padding:16px;margin-bottom:20px}
+.form-lbl{font-size:10px;color:#555;font-family:'DM Mono',monospace;letter-spacing:.5px;margin-bottom:6px;display:block}
+.form-inp{width:100%;background:#0d0f14;border:1px solid #1e2230;border-radius:8px;padding:11px 14px;color:#e8eaf0;font-size:15px;outline:none;margin-bottom:10px}
+.form-inp:focus{border-color:#4ade8060}
+.form-inp::placeholder{color:#333}
+.form-sel{width:100%;background:#0d0f14;border:1px solid #1e2230;border-radius:8px;padding:11px 14px;color:#e8eaf0;font-size:14px;outline:none;-webkit-appearance:none;margin-bottom:10px}
+.form-sel option{background:#111318}
+.pri-row{display:flex;gap:8px;margin-bottom:12px}
+.pri-btn{flex:1;padding:9px;border-radius:8px;border:1px solid #1e2230;font-size:12px;font-weight:500;background:#0d0f14;color:#555}
+.pri-btn.s-high{background:#f8717120;border-color:#f8717150;color:#f87171}
+.pri-btn.s-med{background:#fbbf2420;border-color:#fbbf2450;color:#fbbf24}
+.pri-btn.s-low{background:#4ade8020;border-color:#4ade8050;color:#4ade80}
+.btn-add-todo{width:100%;background:#4ade8018;border:1px solid #4ade8040;border-radius:10px;padding:12px;color:#4ade80;font-size:14px;font-weight:600}
+.btn-add-todo:active{background:#4ade8030}
+.todo-sec-lbl{font-size:10px;color:#555;font-family:'DM Mono',monospace;letter-spacing:1px;margin:16px 0 8px}
+.todo-item{display:flex;align-items:center;gap:10px;background:#111318;border:1px solid #1e2230;border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.todo-chk{width:22px;height:22px;border-radius:6px;border:1.5px solid #2a2d3a;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+.todo-chk.on{background:#4ade80;border-color:#4ade80}
+.todo-chk.on::after{content:'✓';font-size:13px;color:#0d0f14;font-weight:700}
+.todo-pri{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.todo-txt{flex:1;font-size:14px;color:#e8eaf0;line-height:1.4}
+.todo-txt.done{color:#444;text-decoration:line-through}
+.todo-tag{font-size:10px;color:#818cf8;background:#818cf818;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;flex-shrink:0}
+.todo-del{color:#2a2d3a;font-size:18px;padding:4px 0 4px 6px}
+.todo-del:active{color:#f87171}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:#000000cc;z-index:200;align-items:flex-end}
+.modal-bg.open{display:flex}
+.modal{background:#111318;border-radius:20px 20px 0 0;padding:20px 20px 44px;width:100%}
+.modal-handle{width:36px;height:4px;background:#333;border-radius:2px;margin:0 auto 18px}
+.modal-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:8px}
+.modal-body{font-size:13px;color:#666;margin-bottom:18px;line-height:1.6}
+.btn-modal-ok{width:100%;background:#4ade8018;border:1px solid #4ade8040;border-radius:10px;padding:13px;color:#4ade80;font-size:15px;font-weight:600;margin-top:4px}
+.btn-modal-cancel{width:100%;background:none;border:none;color:#555;font-size:14px;padding:12px;margin-top:4px}
+.empty-msg{text-align:center;padding:40px;color:#333;font-size:13px;font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div class="screen active" id="s-pin">
+  <div class="pin-wrap fadein" id="pin-wrap">
+    <div class="pin-eyebrow">Queenstown Holiday Homes</div>
+    <div class="pin-title">QHH Manager</div>
+    <div class="pin-sub">Property operations</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad" id="pin-pad">
+      <button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button>
+      <button class="pin-key" data-k="4">4</button><button class="pin-key" data-k="5">5</button><button class="pin-key" data-k="6">6</button>
+      <button class="pin-key" data-k="7">7</button><button class="pin-key" data-k="8">8</button><button class="pin-key" data-k="9">9</button>
+      <button class="pin-key empty" disabled></button><button class="pin-key" data-k="0">0</button><button class="pin-key del" data-k="del">⌫</button>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="screen" id="s-app">
+
+  <!-- PROPERTIES -->
+  <div class="screen active" id="tab-props" style="position:relative;inset:unset;flex:1;min-height:0">
+    <div class="topbar"><div class="topbar-title">Properties</div></div>
+    <div class="scrollable"><div class="prop-list" id="prop-list"></div></div>
+  </div>
+
+  <!-- PROPERTY DETAIL -->
+  <div class="screen" id="tab-detail" style="position:relative;inset:unset;flex:1;min-height:0">
+    <div class="topbar">
+      <button class="back-btn" onclick="goBack()">‹</button>
+      <div class="topbar-title" id="detail-title"></div>
+      <button class="topbar-action" onclick="openHistory()">History</button>
+    </div>
+    <div class="scrollable" id="detail-scroll">
+      <div class="lockbox-card">
+        <div class="lockbox-label">🔐 LOCKBOX CODE</div>
+        <div class="lockbox-display" id="lbx-display"></div>
+        <div class="lockbox-row">
+          <input class="lockbox-inp" id="lbx-inp" type="text" inputmode="numeric" placeholder="Enter code" maxlength="10">
+          <button class="lockbox-edit-btn" id="lbx-btn" onclick="toggleLockbox()">Edit</button>
+        </div>
+      </div>
+      <div class="sec-label">CHECKLISTS</div>
+      <div class="cl-cards" id="detail-cls"></div>
+      <div style="height:30px"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="screen" id="tab-history" style="position:relative;inset:unset;flex:1;min-height:0">
+    <div class="topbar">
+      <button class="back-btn" onclick="closeHistory()">‹</button>
+      <div class="topbar-title" id="history-title"></div>
+    </div>
+    <div class="scrollable"><div class="hist-list" id="hist-list"></div></div>
+  </div>
+
+  <!-- TODO -->
+  <div class="screen" id="tab-todo" style="position:relative;inset:unset;flex:1;min-height:0">
+    <div class="topbar"><div class="topbar-title">To-do</div></div>
+    <div class="scrollable">
+      <div class="todo-wrap">
+        <div class="todo-add">
+          <label class="form-lbl">Task</label>
+          <input class="form-inp" id="todo-inp" placeholder="What needs doing?">
+          <label class="form-lbl">Property (optional)</label>
+          <select class="form-sel" id="todo-prop"></select>
+          <label class="form-lbl">Priority</label>
+          <div class="pri-row">
+            <button class="pri-btn" id="pri-high" onclick="setPri('high')">🔴 High</button>
+            <button class="pri-btn s-med" id="pri-med" onclick="setPri('med')">🟡 Med</button>
+            <button class="pri-btn" id="pri-low" onclick="setPri('low')">🟢 Low</button>
+          </div>
+          <button class="btn-add-todo" onclick="addTodo()">Add Task</button>
+        </div>
+        <div id="t-high"></div><div id="t-med"></div><div id="t-low"></div><div id="t-done"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="navbar">
+    <button class="nav-btn active" id="nav-props" onclick="showTab('props')">
+      <div class="nav-icon">🏠</div>Properties
+    </button>
+    <button class="nav-btn" id="nav-todo" onclick="showTab('todo')">
+      <div class="nav-icon">✅</div>To-do
+    </button>
+  </div>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="modal-bg" id="modal-save">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Save completed checklist?</div>
+    <div class="modal-body">This saves a timestamped record to this property's history and resets the checklist ready for next time.</div>
+    <button class="btn-modal-ok" onclick="confirmSave()">💾 Save & Reset</button>
+    <button class="btn-modal-cancel" onclick="closeModal('modal-save')">Cancel</button>
+  </div>
+</div>
+
+<script>
+const PIN = "1234";
+const PROPS = [
+  {id:"vista-del-lago",      name:"Vista del Lago",                type:"House",     color:"#818cf8"},
+  {id:"hensman-heights",     name:"Hensman Heights",               type:"House",     color:"#f87171"},
+  {id:"central-lake-st",     name:"Central Lake St",               type:"House",     color:"#fbbf24"},
+  {id:"olivers-place",       name:"Olivers Place",                 type:"House",     color:"#4ade80"},
+  {id:"qt-remarkable",       name:"QT Remarkable Views",           type:"Villa",     color:"#38bdf8"},
+  {id:"qt-mountain-villa",   name:"QT Mountain & Lake Villa",      type:"Villa",     color:"#a78bfa"},
+  {id:"views-views",         name:"Views Views",                   type:"Apartment", color:"#fb923c"},
+  {id:"carrick-1",           name:"Carrick 1",                     type:"Apartment", color:"#34d399"},
+  {id:"earnslaw-1",          name:"Earnslaw 1",                    type:"Apartment", color:"#f472b6"},
+  {id:"earnslaw-3",          name:"Earnslaw View 3",               type:"Apartment", color:"#a3e635"},
+  {id:"carrick-6",           name:"Queenstown Carrick 6",          type:"Apartment", color:"#22d3ee"},
+  {id:"qt-lake-magic",       name:"QT Mountain & Lake Magic",      type:"Apartment", color:"#e879f9"},
+];
+
+const TEMPLATES = [
+  {
+    id:"exit", name:"Exit Checklist", icon:"🚪",
+    meta:[{id:"checkout_date",label:"Checkout date",type:"date"}],
+    sections:[
+      {title:"ENTRY / EXTERIOR",items:["Door locks & keys OK","Windows secure","Rubbish bins checked / emptied","Gas bottles present & level OK"]},
+      {title:"LOUNGE",items:["Furniture undamaged","TV & remotes present","Drawers & cupboards checked","No guest items left"]},
+      {title:"KITCHEN",items:["Benches & cabinets checked","Drawers & cupboards checked","Appliances OK","Cleaning products level OK"]},
+      {title:"BEDROOMS",items:["Furniture OK","Mattress protector present","Drawers / wardrobe checked","No damage"]},
+      {title:"BATHROOMS",items:["Fixtures intact","Shampoo level OK","Conditioner level OK","Body wash level OK","Underfloor heating / towel rail off"]},
+      {title:"GENERAL",items:["BBQ checked","Photos taken if issues","No obvious damage","Walls / floors checked","Washing machine tub tap off","Curtains closed"]},
+    ],
+  },
+  {
+    id:"linen", name:"Linen Planning", icon:"🛏️",
+    meta:[{id:"next_booking",label:"Next booking",type:"date"},{id:"guest_count",label:"Guest count",type:"text"}],
+    sections:[
+      {title:"LINEN COUNT",items:["Single beds counted","Pillowcases counted","King beds counted"]},
+      {title:"TOWELS",items:["Bath towels counted","Hand towels counted","Bath mats counted","Tea towels counted","Face cloths counted"]},
+      {title:"TOILETRIES",items:["Soap stocked","Toilet paper stocked","Dish cloths stocked"]},
+    ],
+  },
+  {
+    id:"preguestin", name:"Pre Guest Check-in", icon:"✅",
+    meta:[{id:"final_check",label:"Final check date",type:"date"}],
+    sections:[
+      {title:"CLEANLINESS",items:["Kitchen clean & stocked","Bathrooms clean & stocked","Beds made correctly","Floors vacuumed / mopped"]},
+      {title:"LINEN",items:["Dirty linen collected","Linen separated correctly","Linen returned to hire"]},
+      {title:"FUNCTIONAL",items:["Heating / cooling set correctly","Lights working","Appliances tested","Wi-Fi / TV working"]},
+      {title:"READY FOR GUESTS",items:["Welcome items present","No smells","Property locked","Final walk-through complete"]},
+      {title:"SIGN-OFF",items:["Property guest-ready"]},
+    ],
+  },
+];
+
+function makeStates(propId){
+  return TEMPLATES.map(tpl=>({
+    tplId:tpl.id, propId, meta:{}, notes:"", expanded:false,
+    items:tpl.sections.flatMap(s=>s.items.map((text,i)=>({
+      id:tpl.id+"_"+s.title.replace(/\W/g,"")+"_"+i, section:s.title, text, done:false
+    })))
+  }));
+}
+
+function ld(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}}
+function sv(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+let lockbox = ld("qhh_lb",{});
+let states  = ld("qhh_st",{});
+let history = ld("qhh_hi",[]);
+let todos   = ld("qhh_td",[]);
+
+PROPS.forEach(p=>{if(!states[p.id]) states[p.id]=makeStates(p.id);});
+
+// PIN
+let pinEntry="";
+document.getElementById("pin-pad").addEventListener("click",e=>{
+  const k=e.target.dataset.k; if(!k) return;
+  if(k==="del"){pinEntry=pinEntry.slice(0,-1);renderDots();return;}
+  if(pinEntry.length>=4) return;
+  pinEntry+=k; renderDots();
+  if(pinEntry.length===4) setTimeout(checkPin,150);
+});
+function renderDots(){
+  for(let i=0;i<4;i++){const d=document.getElementById("pd"+i);d.classList.toggle("on",i<pinEntry.length);d.classList.remove("err");}
+  document.getElementById("pin-err").textContent="";
+}
+function checkPin(){
+  if(pinEntry===PIN){
+    document.getElementById("s-pin").classList.remove("active");
+    document.getElementById("s-app").classList.add("active");
+    init();
+  } else {
+    document.getElementById("pin-err").textContent="incorrect pin";
+    for(let i=0;i<4;i++) document.getElementById("pd"+i).classList.add("err");
+    const w=document.getElementById("pin-wrap"); w.classList.add("shaking");
+    setTimeout(()=>{w.classList.remove("shaking");pinEntry="";renderDots();},500);
+  }
+}
+
+// INIT
+let curProp=null, lbxEditing=false, pendingTpl=null, todoPri="med";
+
+function init(){
+  renderProps();
+  buildTodoPropSel();
+  renderTodos();
+}
+
+// TABS
+function showTab(t){
+  ["props","todo"].forEach(x=>{
+    document.getElementById("tab-"+x).classList.toggle("active",x===t);
+    document.getElementById("nav-"+x).classList.toggle("active",x===t);
+  });
+  document.getElementById("tab-detail").classList.remove("active");
+  document.getElementById("tab-history").classList.remove("active");
+}
+
+// PROPS LIST
+function renderProps(){
+  const wrap=document.getElementById("prop-list");
+  wrap.innerHTML=PROPS.map(p=>{
+    const init=p.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    const code=lockbox[p.id];
+    const hcount=history.filter(h=>h.propId===p.id).length;
+    return `<div class="prop-card" onclick="openProp('${p.id}')">
+      <div class="prop-initial" style="color:${p.color};background:${p.color}20">${init}</div>
+      <div class="prop-info">
+        <div class="prop-name">${p.name}</div>
+        <div class="prop-type">${p.type}</div>
+        <div class="prop-meta">
+          ${code?`<span class="prop-badge" style="color:#4ade80;background:#4ade8018">🔐 ${code}</span>`:""}
+          ${hcount>0?`<span class="prop-badge" style="color:#818cf8;background:#818cf818">${hcount} records</span>`:""}
+        </div>
+      </div>
+      <div class="prop-arrow">›</div>
+    </div>`;
+  }).join("");
+}
+
+// DETAIL
+function openProp(id){
+  curProp=id;
+  const p=PROPS.find(x=>x.id===id);
+  document.getElementById("detail-title").textContent=p.name;
+  document.getElementById("tab-props").classList.remove("active");
+  document.getElementById("tab-detail").classList.add("active");
+  renderLockbox(); renderCls();
+  document.getElementById("detail-scroll").scrollTop=0;
+}
+function goBack(){
+  document.getElementById("tab-detail").classList.remove("active");
+  document.getElementById("tab-props").classList.add("active");
+  renderProps();
+}
+
+// LOCKBOX
+function renderLockbox(){
+  const code=lockbox[curProp]||"";
+  const disp=document.getElementById("lbx-display");
+  disp.innerHTML=code?code:`<span class="lockbox-empty">- - - -</span>`;
+  document.getElementById("lbx-inp").value=code;
+  document.getElementById("lbx-inp").style.display="none";
+  document.getElementById("lbx-btn").textContent="Edit";
+  lbxEditing=false;
+}
+function toggleLockbox(){
+  if(!lbxEditing){
+    document.getElementById("lbx-inp").style.display="block";
+    document.getElementById("lbx-inp").focus();
+    document.getElementById("lbx-btn").textContent="Save";
+    lbxEditing=true;
+  } else {
+    lockbox[curProp]=document.getElementById("lbx-inp").value.trim();
+    sv("qhh_lb",lockbox); renderLockbox();
+  }
+}
+
+// CHECKLISTS
+function renderCls(){
+  const wrap=document.getElementById("detail-cls");
+  wrap.innerHTML=states[curProp].map((st,si)=>{
+    const tpl=TEMPLATES.find(t=>t.id===st.tplId);
+    const done=st.items.filter(i=>i.done).length, total=st.items.length;
+    const pct=total?Math.round(done/total*100):0;
+    const isOpen=st.expanded;
+    let body="";
+    if(isOpen){
+      const metaHtml=tpl.meta.map(f=>`<input class="cl-meta-inp" type="${f.type}" placeholder="${f.label}" value="${st.meta[f.id]||''}" onchange="setMeta(${si},'${f.id}',this.value)">`).join("");
+      const secs=tpl.sections.map(s=>{
+        const items=st.items.filter(i=>i.section===s.title);
+        return `<div class="cl-sec-hd">${s.title}</div>`+
+          items.map(item=>`<div class="cl-item">
+            <div class="cl-chk ${item.done?'on':''}" onclick="tickItem(${si},'${item.id}')"></div>
+            <div class="cl-item-txt ${item.done?'done':''}">${item.text}</div>
+          </div>`).join("");
+      }).join("");
+      body=`<div class="cl-body">
+        <div class="cl-meta-row">${metaHtml}</div>
+        ${secs}
+        <div class="cl-notes-lbl">NOTES</div>
+        <textarea class="cl-notes-inp" placeholder="Add notes…" onchange="setNotes(${si},this.value)">${st.notes||""}</textarea>
+        <div class="cl-actions">
+          <button class="btn-save" onclick="promptSave('${tpl.id}')">💾 Save Record</button>
+          <button class="btn-reset" onclick="resetCl(${si})">Reset</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="cl-card">
+      <div class="cl-head" onclick="toggleCl(${si})">
+        <div class="cl-icon">${tpl.icon}</div>
+        <div class="cl-head-info">
+          <div class="cl-name">${tpl.name}</div>
+          <div class="cl-prog-text">${done} of ${total} complete</div>
+          <div class="cl-prog-bar"><div class="cl-prog-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="cl-arrow ${isOpen?'open':''}">›</div>
+      </div>${body}
+    </div>`;
+  }).join("");
+}
+
+function toggleCl(si){states[curProp][si].expanded=!states[curProp][si].expanded;sv("qhh_st",states);renderCls();}
+function tickItem(si,itemId){
+  const item=states[curProp][si].items.find(i=>i.id===itemId);
+  if(item) item.done=!item.done;
+  sv("qhh_st",states); renderCls();
+}
+function setMeta(si,f,v){states[curProp][si].meta[f]=v;sv("qhh_st",states);}
+function setNotes(si,v){states[curProp][si].notes=v;sv("qhh_st",states);}
+function resetCl(si){
+  states[curProp][si].items.forEach(i=>i.done=false);
+  states[curProp][si].meta={};
+  states[curProp][si].notes="";
+  sv("qhh_st",states); renderCls();
+}
+
+// SAVE
+function promptSave(tplId){pendingTpl=tplId;document.getElementById("modal-save").classList.add("open");}
+function confirmSave(){
+  closeModal("modal-save");
+  if(!pendingTpl||!curProp) return;
+  const prop=PROPS.find(p=>p.id===curProp);
+  const tpl=TEMPLATES.find(t=>t.id===pendingTpl);
+  const si=states[curProp].findIndex(s=>s.tplId===pendingTpl);
+  const st=states[curProp][si];
+  history.unshift({
+    id:"h_"+Date.now(), propId:curProp, propName:prop.name,
+    tplId:tpl.id, tplName:tpl.name, tplIcon:tpl.icon,
+    savedAt:new Date().toISOString(),
+    meta:{...st.meta},
+    items:st.items.map(i=>({text:i.text,done:i.done,section:i.section})),
+    notes:st.notes
+  });
+  sv("qhh_hi",history);
+  resetCl(si); renderProps();
+}
+
+// HISTORY
+function openHistory(){
+  const prop=PROPS.find(p=>p.id===curProp);
+  document.getElementById("history-title").textContent=prop.name+" · History";
+  document.getElementById("tab-detail").classList.remove("active");
+  document.getElementById("tab-history").classList.add("active");
+  renderHistory();
+}
+function closeHistory(){
+  document.getElementById("tab-history").classList.remove("active");
+  document.getElementById("tab-detail").classList.add("active");
+}
+function renderHistory(){
+  const wrap=document.getElementById("hist-list");
+  const items=history.filter(h=>h.propId===curProp);
+  if(!items.length){
+    wrap.innerHTML=`<div class="hist-empty">No saved records yet.<br>Complete a checklist<br>and tap Save Record.</div>`;
+    return;
+  }
+  wrap.innerHTML=items.map(h=>{
+    const d=new Date(h.savedAt);
+    const dateStr=d.toLocaleDateString("en-NZ",{day:"numeric",month:"short",year:"numeric"});
+    const timeStr=d.toLocaleTimeString("en-NZ",{hour:"2-digit",minute:"2-digit"});
+    const done=h.items.filter(i=>i.done).length, total=h.items.length;
+    const metaVals=Object.entries(h.meta).filter(([,v])=>v).map(([k,v])=>`${k.replace(/_/g," ")}: ${v}`).join(" · ");
+    const secs=[...new Set(h.items.map(i=>i.section))];
+    const itemsHtml=secs.map(s=>{
+      const its=h.items.filter(i=>i.section===s);
+      return `<div class="hist-sec-hd">${s}</div>`+
+        its.map(i=>`<div class="hist-item-row ${i.done?'hist-ok':'hist-miss'}">${i.done?'✓':'✗'} ${i.text}</div>`).join("");
+    }).join("");
+    return `<div class="hist-card">
+      <div class="hist-top">
+        <div>
+          <div class="hist-name">${h.tplIcon} ${h.tplName}</div>
+          <div class="hist-datetime">${dateStr} at ${timeStr}</div>
+        </div>
+        <button class="hist-del" onclick="delHistory('${h.id}')">×</button>
+      </div>
+      <div class="hist-score">${done}/${total} items complete</div>
+      ${metaVals?`<div class="hist-meta-val">${metaVals}</div>`:""}
+      <div>${itemsHtml}</div>
+      ${h.notes?`<div class="hist-notes-box">Notes: ${h.notes}</div>`:""}
+    </div>`;
+  }).join("");
+}
+function delHistory(id){history=history.filter(h=>h.id!==id);sv("qhh_hi",history);renderHistory();renderProps();}
+
+// MODAL
+function closeModal(id){document.getElementById(id).classList.remove("open");}
+document.querySelectorAll(".modal-bg").forEach(bg=>{bg.addEventListener("click",e=>{if(e.target===bg)bg.classList.remove("open");});});
+
+// TODOS
+function buildTodoPropSel(){
+  const sel=document.getElementById("todo-prop");
+  sel.innerHTML=`<option value="">All properties</option>`+
+    PROPS.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+}
+function setPri(p){
+  todoPri=p;
+  ["high","med","low"].forEach(x=>{document.getElementById("pri-"+x).className="pri-btn"+(x===p?" s-"+x:"");});
+}
+function addTodo(){
+  const text=document.getElementById("todo-inp").value.trim();
+  if(!text) return;
+  todos.push({id:"td_"+Date.now(),text,prop:document.getElementById("todo-prop").value,priority:todoPri,done:false});
+  sv("qhh_td",todos);
+  document.getElementById("todo-inp").value="";
+  renderTodos();
+}
+function toggleTodo(id){const t=todos.find(t=>t.id===id);if(t)t.done=!t.done;sv("qhh_td",todos);renderTodos();}
+function delTodo(id){todos=todos.filter(t=>t.id!==id);sv("qhh_td",todos);renderTodos();}
+function renderTodos(){
+  const pc={high:"#f87171",med:"#fbbf24",low:"#4ade80"};
+  const secs={high:{lbl:"🔴 High priority",items:[]},med:{lbl:"🟡 Medium",items:[]},low:{lbl:"🟢 Low",items:[]},done:{lbl:"Completed",items:[]}};
+  todos.forEach(t=>{if(t.done)secs.done.items.push(t);else secs[t.priority||"med"].items.push(t);});
+  Object.entries(secs).forEach(([k,s])=>{
+    const el=document.getElementById("t-"+k);
+    if(!s.items.length){el.innerHTML="";return;}
+    el.innerHTML=`<div class="todo-sec-lbl">${s.lbl}</div>`+
+      s.items.map(t=>{
+        const prop=PROPS.find(p=>p.id===t.prop);
+        return `<div class="todo-item">
+          <div class="todo-chk ${t.done?'on':''}" onclick="toggleTodo('${t.id}')"></div>
+          <div class="todo-pri" style="background:${pc[t.priority||'med']}"></div>
+          <div class="todo-txt ${t.done?'done':''}">${t.text}</div>
+          ${prop?`<div class="todo-tag">${prop.name.split(" ")[0]}</div>`:""}
+          <button class="todo-del" onclick="delTodo('${t.id}')">×</button>
+        </div>`;
+      }).join("");
+  });
+}
+</script>
+</body>
+</html>
